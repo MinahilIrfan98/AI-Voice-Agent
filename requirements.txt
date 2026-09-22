@@ -1,0 +1,3 @@
+fastapi
+livekit-api
+python-dotenv
