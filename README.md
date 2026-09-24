@@ -1,94 +1,76 @@
 # AI Voice Agent
 
-An AI voice agent built with **LiveKit**, using real-time speech-to-text, LLM, and text-to-speech pipelines for natural voice conversations. Includes a custom FastAPI backend for secure token generation and a responsive web frontend with live transcription, mic controls, and call management — built end to end from backend to UI design.
+Talk to an AI in your browser and it talks back. You speak, it answers out loud, and the whole conversation shows up as live captions on screen. The agent runs on LiveKit, tokens are issued by a small FastAPI backend, and the web interface is hand-built from scratch.
 
-🔗 **Live Demo:** [ai-voice-agent-mu-seven.vercel.app](#)
+**Live demo:** [ai-voice-agent-mu-seven.vercel.app](https://ai-voice-agent-mu-seven.vercel.app)
 
----
+Works on desktop and mobile browsers. The layout adapts to the screen size, and I have tested it on laptop and phone.
 
-## Architecture
+<!-- Add a screenshot or a 60-90 second demo GIF here -->
 
-The system is split into four layers:
+## What it does
 
-### 1. Session Access
-Handles how a client gets permission to join a voice session.
-- **`api/token.py`** (Vercel Token Route) — serverless function that issues a LiveKit access token for the deployed frontend.
-- **`server.py`** (FastAPI Server) — local backend that also issues tokens when running on a laptop, and serves the static web shell.
+Click the mic button, allow microphone access, and start speaking. The agent waits until you finish your sentence, thinks, and replies in a natural voice. The interface has mic controls, call management (start and end a session) and live transcription of both sides of the conversation.
 
-### 2. Client Experience
-What the user actually sees and interacts with.
-- **`index.html`** (Static Web Shell) — the polished custom UI: mic button, call controls, live captions.
-- **`app.py`** (Gradio UI) — an earlier prototype interface that generates a token and passes credentials to the browser client.
-- **`app.js`** (Browser Client) — connects to the LiveKit room, publishes the user's microphone, dispatches the agent, and renders the agent's responses back to the user.
+## How it works
 
-### 3. Realtime Runtime
-The live communication layer, powered by LiveKit.
-- **LiveKit Platform** — the real-time WebRTC infrastructure that routes audio between the browser and the agent.
-- **`agent.py`** (Agent Server + Voice Session) — dispatched by LiveKit when a user joins; starts a voice session that orchestrates the AI pipeline and publishes responses back to the room.
+When a user opens the app, the frontend asks the backend for a session token and uses it to join a LiveKit room. LiveKit dispatches the agent into that room, and from there every turn goes through the same pipeline:
 
-### 4. AI Processing
-The pipeline that turns speech into a spoken response.
-- **STT Service** — transcribes incoming audio (Deepgram Nova-3).
-- **Turn Detector** — detects when the user has finished speaking.
-- **Audio Enhancer** — cleans/enhances microphone input before transcription.
-- **LLM Service** — generates the agent's response.
-- **TTS Service** — synthesizes the response back into speech.
+1. The microphone audio is cleaned up by an audio enhancer.
+2. Deepgram Nova-3 transcribes it to text.
+3. A turn detector decides when you have actually finished speaking.
+4. The transcript goes to the LLM, which writes a reply.
+5. A text-to-speech service turns the reply into audio and streams it back through LiveKit.
+6. The browser plays the audio and prints the transcript.
 
----
+## Project structure
 
-## How a Conversation Flows
+| File | Role |
+| --- | --- |
+| `agent.py` | The voice agent. Started by LiveKit when a user joins, and runs the AI pipeline. |
+| `server.py` | Local FastAPI server. Issues LiveKit tokens and serves the frontend. |
+| `api/token.py` | Vercel serverless function that issues tokens for the deployed site. |
+| `index.html` | The web interface: mic button, call controls, live captions. |
+| `app.js` | Browser client. Joins the room, publishes the mic, renders responses. |
+| `app.py` | Early Gradio prototype, kept for reference. |
+| `run.py` | Starts the agent and the frontend server together. |
 
-1. User opens the web app → a session token is requested and issued.
-2. Browser client connects to the LiveKit room and publishes the user's microphone.
-3. LiveKit dispatches the agent, which starts a voice session.
-4. Audio is enhanced, transcribed (STT), and turn-detection determines when the user has finished speaking.
-5. The transcript goes to the LLM, which generates a response.
-6. The response is converted to speech (TTS) and streamed back through LiveKit.
-7. The browser client plays the audio and renders the live transcript/response for the user.
+## Tech stack
 
----
+- **Realtime:** LiveKit (WebRTC, agent dispatch, rooms)
+- **AI pipeline:** Deepgram Nova-3 for speech-to-text, plus an LLM, text-to-speech and turn detection
+- **Backend:** Python, FastAPI, LiveKit Agents SDK, uv
+- **Frontend:** HTML, CSS, JavaScript with the LiveKit client SDK
+- **Hosting:** Vercel for the frontend and token endpoint
 
-## Tech Stack
+## Run it locally
 
-- **Real-time infrastructure:** LiveKit (WebRTC, agent dispatch, room management)
-- **AI pipeline:** Deepgram (STT), LLM inference, TTS synthesis, turn detection
-- **Backend:** Python, FastAPI, LiveKit Agents SDK, `uv` for dependency management
-- **Frontend:** HTML/CSS/JavaScript with the LiveKit client SDK
-- **Deployment:** Vercel (frontend + token endpoint)
+You need Python 3.13, [uv](https://docs.astral.sh/uv/), and a LiveKit Cloud project with API keys.
 
----
+```bash
+uv sync
+```
 
-## Running Locally
+Create a `.env` file in the project root:
 
-**Prerequisites:** Python 3.13, [uv](https://docs.astral.sh/uv/), a LiveKit Cloud project with API keys.
+```
+LIVEKIT_URL=your-livekit-url
+LIVEKIT_API_KEY=your-api-key
+LIVEKIT_API_SECRET=your-api-secret
+```
 
-1. Clone the repo and install dependencies:
-   ```bash
-   uv sync
-   ```
+Then start everything with one command:
 
-2. Create a `.env` file in the project root with:
-   ```
-   LIVEKIT_URL=your-livekit-url
-   LIVEKIT_API_KEY=your-api-key
-   LIVEKIT_API_SECRET=your-api-secret
-   ```
+```bash
+uv run run.py
+```
 
-3. Run the full stack (agent + frontend server) with a single command:
-   ```bash
-   uv run run.py
-   ```
-
-4. Open [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser, click the mic button, and allow microphone access.
-
----
+Open http://127.0.0.1:8000, click the mic button and allow microphone access.
 
 ## Deployment
 
-The frontend (`index.html`) and token endpoint (`api/token.py`) are deployed on **Vercel**. The voice agent (`agent.py`) needs to run persistently — either locally via `uv run agent.py dev`, or deployed independently to **LiveKit Cloud** for full 24/7 availability.
-
----
+The frontend and the token endpoint are deployed on Vercel. The agent itself is a long-running process, so it runs separately: locally with `uv run agent.py dev`, or on LiveKit Cloud so it stays available without my laptop being on.
 
 ## Notes
 
-This project started from LiveKit's starter agent template and was extended with a custom token server, a hand-built frontend (mic controls, live captions, call management), and a full local-to-cloud deployment pipeline.
+The project started from LiveKit's starter agent template. The token server, the frontend, the caption and call controls, and the deployment setup are my additions.
