@@ -41,7 +41,7 @@ When a user opens the app, the frontend asks the backend for a session token and
 - **AI pipeline:** Deepgram Nova-3 for speech-to-text, plus an LLM, text-to-speech and turn detection
 - **Backend:** Python, FastAPI, LiveKit Agents SDK, uv
 - **Frontend:** HTML, CSS, JavaScript with the LiveKit client SDK
-- **Hosting:** Vercel for the frontend and token endpoint
+- **Hosting:** Vercel for the frontend and token endpoint, LiveKit Cloud for the agent worker
 
 ## Run it locally
 
@@ -52,12 +52,9 @@ uv sync
 ```
 
 Create a `.env` file in the project root:
-
-```
 LIVEKIT_URL=your-livekit-url
 LIVEKIT_API_KEY=your-api-key
 LIVEKIT_API_SECRET=your-api-secret
-```
 
 Then start everything with one command:
 
@@ -69,7 +66,7 @@ Open http://127.0.0.1:8000, click the mic button and allow microphone access.
 
 ## Deployment
 
-The frontend and the token endpoint are deployed on Vercel. The agent itself is a long-running process, so it runs separately: locally with `uv run agent.py dev`, or on LiveKit Cloud so it stays available without my laptop being on.
+The frontend and the token endpoint are deployed on Vercel. The agent itself is deployed as a persistent worker on LiveKit Cloud, so it stays online and responds around the clock, independent of whether my laptop is on. It's built and shipped straight from this repo using the LiveKit CLI (`lk agent deploy`), with a Dockerfile that installs dependencies via `uv` and runs `agent.py` as the entrypoint.
 
 ## Notes
 
