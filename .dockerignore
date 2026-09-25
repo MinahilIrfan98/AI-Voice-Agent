@@ -44,7 +44,6 @@ coverage/
 .DS_Store
 
 # Project docs and misc
-README.md
 CONTRIBUTING.md
 LICENSE
 
