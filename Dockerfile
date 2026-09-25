@@ -38,7 +38,7 @@ WORKDIR /app
 
 # Copy just the dependency files first, for more efficient layer caching
 COPY pyproject.toml uv.lock ./
-RUN mkdir -p src
+RUN mkdir -p src/voiceagent && touch src/voiceagent/__init__.py
 
 # Install Python dependencies using UV's lock file
 # --locked ensures we use exact versions from uv.lock for reproducible builds
